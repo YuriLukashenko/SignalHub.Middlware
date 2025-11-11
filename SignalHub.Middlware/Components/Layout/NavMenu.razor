@@ -28,7 +28,11 @@
             </NavLink>
         </div>
 
-        <hr class="my-2" />
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="login">
+                <span class="bi bi-box-arrow-in-right-nav-menu" aria-hidden="true"></span> Login
+            </NavLink>
+        </div>
 
         <AuthorizeView>
             <Authorized>
@@ -50,14 +54,6 @@
                 </div>
             </Authorized>
             <NotAuthorized>
-                <div class="nav-item px-3">
-                    <NavLink class="nav-link" href="login">
-                        <span class="bi bi-box-arrow-in-right" aria-hidden="true"></span> Login
-                    </NavLink>
-                </div>
-                <div class="px-3 mt-2">
-                    <small class="text-muted">Not logged in</small>
-                </div>
             </NotAuthorized>
         </AuthorizeView>
     </nav>
