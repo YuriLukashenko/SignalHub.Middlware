@@ -1,0 +1,11 @@
+﻿@page "/login"
+@using Microsoft.AspNetCore.Authentication
+@using Microsoft.AspNetCore.Authentication.OpenIdConnect
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        //await HttpContext.ChallengeAsync(OpenIdConnectDefaults.AuthenticationScheme,
+        //    new AuthenticationProperties { RedirectUri = "/" });
+    }
+}
