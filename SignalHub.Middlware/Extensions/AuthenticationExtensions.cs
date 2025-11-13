@@ -10,9 +10,6 @@ namespace SignalHub.Middlware.Extensions
 {
     public static class AuthenticationExtensions
     {
-        /// <summary>
-        /// Adds HubexoID OpenID Connect authentication for web applications
-        /// </summary>
         public static AuthenticationBuilder AddHubexoAuthentication(
             this IServiceCollection services,
             HubexoAuthenticationOptions options)
@@ -46,10 +43,13 @@ namespace SignalHub.Middlware.Extensions
                 oidcOptions.ClientId = options.ClientId;
                 oidcOptions.ClientSecret = options.ClientSecret;
                 oidcOptions.ResponseType = options.ResponseType;
+                oidcOptions.ResponseMode = OpenIdConnectResponseMode.Query;
                 oidcOptions.MetadataAddress = options.MetadataAddress;
                 oidcOptions.CallbackPath = options.CallbackPath;
                 oidcOptions.SignedOutCallbackPath = options.SignedOutCallbackPath;
                 oidcOptions.SaveTokens = options.SaveTokens;
+                oidcOptions.UsePkce = true;
+                oidcOptions.DisableTelemetry = true;
 
                 oidcOptions.Scope.Clear();
                 foreach (var scope in options.Scopes)
@@ -60,16 +60,26 @@ namespace SignalHub.Middlware.Extensions
                 oidcOptions.TokenValidationParameters = new TokenValidationParameters
                 {
                     NameClaimType = options.NameClaimType,
-                    ValidateIssuer = true,
+                    ValidateIssuer = false,
                     ValidateAudience = true,
+                    ValidAudiences = string.IsNullOrEmpty(options.CognitoAppClientId)
+                        ? new[] { options.ClientId }
+                        : new[] { options.ClientId, options.CognitoAppClientId },
                     ValidateLifetime = true,
                     ValidateIssuerSigningKey = true
                 };
 
                 oidcOptions.ClaimsIssuer = options.SchemeName;
+                oidcOptions.ProtocolValidator.RequireNonce = false;
 
                 oidcOptions.Events = new OpenIdConnectEvents
                 {
+                    OnRedirectToIdentityProvider = context =>
+                    {
+                        context.ProtocolMessage.SetParameter("x-client-SKU", null);
+                        context.ProtocolMessage.SetParameter("x-client-ver", null);
+                        return Task.CompletedTask;
+                    },
                     OnRedirectToIdentityProviderForSignOut = context =>
                     {
                         var logoutUri = options.Authority.TrimEnd('/') + "/v2/logout?client_id=" + options.ClientId;
@@ -101,9 +111,6 @@ namespace SignalHub.Middlware.Extensions
             return authBuilder;
         }
 
-        /// <summary>
-        /// Adds HubexoID JWT Bearer authentication for APIs
-        /// </summary>
         public static AuthenticationBuilder AddHubexoApiAuthentication(
             this IServiceCollection services,
             HubexoApiAuthenticationOptions options)
@@ -137,7 +144,6 @@ namespace SignalHub.Middlware.Extensions
                 {
                     OnAuthenticationFailed = context =>
                     {
-                        Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
                         return Task.CompletedTask;
                     },
                     OnTokenValidated = context =>
@@ -154,9 +160,6 @@ namespace SignalHub.Middlware.Extensions
             return authBuilder;
         }
 
-        /// <summary>
-        /// adds multi-authentication supporting both Auth0 and HubexoID
-        /// </summary>
         public static AuthenticationBuilder AddMultiProviderAuthentication(
             this IServiceCollection services,
             Action<OpenIdConnectOptions> configureAuth0,
@@ -186,9 +189,6 @@ namespace SignalHub.Middlware.Extensions
             return authBuilder;
         }
 
-        /// <summary>
-        /// adds dual authentication support 
-        /// </summary>
         public static AuthenticationBuilder AddDualApiAuthentication(
             this IServiceCollection services,
             Action<JwtBearerOptions> configureJwtBearer,

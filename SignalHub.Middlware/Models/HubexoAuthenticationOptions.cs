@@ -6,11 +6,8 @@ namespace SignalHub.Middlware.Models
     {
         public string Authority { get; set; } = string.Empty;
         public string ClientId { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Store in User Secrets or Azure Key Vault, not in appsettings.json
-        /// </summary>
         public string ClientSecret { get; set; } = string.Empty;
+        public string? CognitoAppClientId { get; set; }
 
         public string? MetadataAddress { get; set; }
         public string ResponseType { get; set; } = "code";
@@ -52,10 +49,6 @@ namespace SignalHub.Middlware.Models
         public string Authority { get; set; } = string.Empty;
         public string Audience { get; set; } = string.Empty;
         public string? MetadataAddress { get; set; }
-
-        /// <summary>
-        /// Should only be false in development environments
-        /// </summary>
         public bool RequireHttpsMetadata { get; set; } = true;
 
         public bool ValidateIssuer { get; set; } = true;

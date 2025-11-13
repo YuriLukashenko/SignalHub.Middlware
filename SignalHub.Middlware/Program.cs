@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using SignalHub.Middlware.Components;
 using SignalHub.Middlware.Extensions;
@@ -15,12 +16,12 @@ builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
 
-// Configure HubexoID OIDC authentication (for web/Blazor)
 var hubexoOptions = new HubexoAuthenticationOptions
 {
     Authority = builder.Configuration["HubexoID:Authority"] ?? "",
     ClientId = builder.Configuration["HubexoID:ClientId"] ?? "",
     ClientSecret = builder.Configuration["HubexoID:ClientSecret"] ?? "",
+    CognitoAppClientId = builder.Configuration["HubexoID:CognitoAppClientId"],
     MetadataAddress = builder.Configuration["HubexoID:MetadataAddress"],
     CallbackPath = builder.Configuration["HubexoID:CallbackPath"] ?? "/signin-oidc-hubexo",
     SignedOutCallbackPath = builder.Configuration["HubexoID:SignedOutCallbackPath"] ?? "/signout-callback-oidc-hubexo",
@@ -33,7 +34,6 @@ if (scopes != null && scopes.Length > 0)
     hubexoOptions.Scopes = new List<string>(scopes);
 }
 
-// Configure HubexoID JWT Bearer authentication (for APIs)
 var hubexoApiOptions = new HubexoApiAuthenticationOptions
 {
     Authority = builder.Configuration["HubexoAPI:Authority"] ?? "",
@@ -46,7 +46,6 @@ var hubexoApiOptions = new HubexoApiAuthenticationOptions
     SchemeName = builder.Configuration["HubexoAPI:SchemeName"] ?? "HubexoBearer"
 };
 
-// Dual authentication: Cookie+OIDC for web, JWT Bearer for APIs
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = CookieAuthenticationDefaults.AuthenticationScheme;
@@ -67,10 +66,13 @@ builder.Services.AddAuthentication(options =>
     oidcOptions.ClientId = hubexoOptions.ClientId;
     oidcOptions.ClientSecret = hubexoOptions.ClientSecret;
     oidcOptions.ResponseType = hubexoOptions.ResponseType;
+    oidcOptions.ResponseMode = OpenIdConnectResponseMode.Query;
     oidcOptions.MetadataAddress = hubexoOptions.MetadataAddress;
     oidcOptions.CallbackPath = hubexoOptions.CallbackPath;
     oidcOptions.SignedOutCallbackPath = hubexoOptions.SignedOutCallbackPath;
     oidcOptions.SaveTokens = hubexoOptions.SaveTokens;
+    oidcOptions.UsePkce = true;
+    oidcOptions.DisableTelemetry = true;
 
     oidcOptions.Scope.Clear();
     foreach (var scope in hubexoOptions.Scopes)
@@ -87,15 +89,28 @@ builder.Services.AddAuthentication(options =>
     {
         NameClaimType = hubexoOptions.NameClaimType,
         ValidateIssuer = true,
+        ValidIssuer = "https://cognito-idp.eu-north-1.amazonaws.com/eu-north-1_rXuV2z4NL",
         ValidateAudience = true,
+        ValidAudiences = string.IsNullOrEmpty(hubexoOptions.CognitoAppClientId)
+            ? new[] { hubexoOptions.ClientId }
+            : new[] { hubexoOptions.ClientId, hubexoOptions.CognitoAppClientId },
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true
     };
 
     oidcOptions.ClaimsIssuer = hubexoOptions.SchemeName;
 
+    // Cognito with PKCE doesn't require nonce validation
+    oidcOptions.ProtocolValidator.RequireNonce = false;
+
     oidcOptions.Events = new OpenIdConnectEvents
     {
+        OnRedirectToIdentityProvider = context =>
+        {
+            context.ProtocolMessage.SetParameter("x-client-SKU", null);
+            context.ProtocolMessage.SetParameter("x-client-ver", null);
+            return Task.CompletedTask;
+        },
         OnRedirectToIdentityProviderForSignOut = context =>
         {
             var logoutUri = hubexoOptions.Authority.TrimEnd('/') + "/v2/logout?client_id=" + hubexoOptions.ClientId;
@@ -141,12 +156,10 @@ builder.Services.AddAuthentication(options =>
     {
         OnAuthenticationFailed = context =>
         {
-            Console.WriteLine($"JWT Authentication failed: {context.Exception.Message}");
             return Task.CompletedTask;
         },
         OnTokenValidated = context =>
         {
-            Console.WriteLine($"JWT Token validated for: {context.Principal?.Identity?.Name}");
             return Task.CompletedTask;
         }
     };
@@ -157,7 +170,6 @@ var app = builder.Build();
 if (!app.Environment.IsDevelopment())
 {
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
-    // HSTS value: 30 days. Adjust for production if needed: https://aka.ms/aspnetcore-hsts
     app.UseHsts();
 }
 
