@@ -1,4 +1,4 @@
-@page "/signout"
+@page "/signedout"
 @using SignalHub.Middlware.Components.Layout
 @layout MainLayout
 @inject NavigationManager Navigation
@@ -13,7 +13,7 @@
         
         <div class="signedout-actions">
             <button class="btn-primary" @onclick="NavigateHome">
-                <i class="bi bi-house"></i> Go to Home
+                <i class="bi bi-house"></i> Go Home
             </button>
             <button class="btn-secondary" @onclick="SignInAgain">
                 <i class="bi bi-box-arrow-in-right"></i> Sign In Again
@@ -40,8 +40,7 @@
     
     protected override async Task OnInitializedAsync()
     {
-        await Task.Delay(5000);
-        NavigateHome();
+        //NavigateHome();
     }
 }
 

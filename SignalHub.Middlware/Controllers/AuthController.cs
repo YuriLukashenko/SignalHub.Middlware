@@ -35,7 +35,7 @@ namespace SignalHub.Middlware.Controllers
             _logger.LogInformation("User {UserId} is logging out", userId);
 
             var redirectUrl = string.IsNullOrEmpty(returnUrl)
-                ? "/signout/complete"
+                ? "https://localhost:44347/signout/complete"
                 : returnUrl;
 
             var authenticationProperties = new AuthenticationProperties
@@ -48,19 +48,6 @@ namespace SignalHub.Middlware.Controllers
             await HttpContext.SignOutAsync("HubexoID", authenticationProperties);
 
             return new EmptyResult();
-        }
-
-        [HttpGet("signout-complete")]
-        public IActionResult SignoutComplete()
-        {
-            _logger.LogInformation("User has completed signout process");
-
-            if (!User.Identity?.IsAuthenticated ?? true)
-            {
-                return RedirectToAction("Index", "Home");
-            }
-
-            return RedirectToAction("Logout");
         }
 
         [HttpGet("access-denied")]
