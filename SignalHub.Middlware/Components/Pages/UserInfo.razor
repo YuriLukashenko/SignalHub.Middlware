@@ -61,10 +61,7 @@
                                         <tbody>
                                             @foreach (var claim in context.User.Claims.OrderBy(c => c.Type))
                                             {
-                                                var isImportantClaim = claim.Type == "sub" ||
-                                                                      claim.Type == "family_name" ||
-                                                                      claim.Type == "iss" ||
-                                                                      claim.Type == "iat";
+                                                var isImportantClaim = false; //claim.Type == "sub" ||claim.Type == "family_name" ||claim.Type == "iss" ||claim.Type == "iat";
                                                 <tr class="@(isImportantClaim ? "table-info" : "")">
                                                     <td>
                                                         <code class="@(isImportantClaim ? "text-success fw-bold" : "text-primary")">
@@ -106,7 +103,7 @@
                         </div>
                     </div>
 
-                    <div class="card mt-4">
+                   @*  <div class="card mt-4">
                         <div class="card-header bg-secondary text-white">
                             <h4 class="mb-0">
                                 <i class="bi bi-shield-check"></i> Access Tokens
@@ -122,7 +119,7 @@
                                 </a>
                             </div>
                         </div>
-                    </div>
+                    </div> *@
                 </div>
 
                 <div class="col-md-4">
@@ -156,31 +153,14 @@
                                     <strong>Subject (sub):</strong><br />
                                     <small class="text-muted text-break">@(GetClaimValue(context.User, "sub"))</small>
                                 </li>
-                                <li class="mb-2">
+@*                                 <li class="mb-2">
                                     <strong>Issuer (iss):</strong><br />
                                     <small class="text-muted text-break">@(GetClaimValue(context.User, "iss"))</small>
                                 </li>
                                 <li class="mb-2">
                                     <strong>Issued At (iat):</strong><br />
                                     <small class="text-muted">@FormatTimestamp(GetClaimValue(context.User, "iat"))</small>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <div class="card mt-3">
-                        <div class="card-header bg-warning">
-                            <h5 class="mb-0">Security</h5>
-                        </div>
-                        <div class="card-body">
-                            <p class="small">
-                                Your session is secured with:
-                            </p>
-                            <ul class="small">
-                                <li>HTTPS encryption</li>
-                                <li>Server-side token storage</li>
-                                <li>OIDC authentication</li>
-                                <li>Secure cookies</li>
+                                </li> *@
                             </ul>
                         </div>
                     </div>
