@@ -61,18 +61,29 @@
                                         <tbody>
                                             @foreach (var claim in context.User.Claims.OrderBy(c => c.Type))
                                             {
-                                                <tr>
+                                                var isImportantClaim = claim.Type == "sub" ||
+                                                                      claim.Type == "family_name" ||
+                                                                      claim.Type == "iss" ||
+                                                                      claim.Type == "iat";
+                                                <tr class="@(isImportantClaim ? "table-info" : "")">
                                                     <td>
-                                                        <code class="text-primary">@GetShortClaimType(claim.Type)</code>
+                                                        <code class="@(isImportantClaim ? "text-success fw-bold" : "text-primary")">
+                                                            @GetShortClaimType(claim.Type)
+                                                        </code>
                                                     </td>
                                                     <td>
                                                         @if (claim.Type.Contains("picture") || claim.Type.Contains("avatar"))
                                                         {
                                                             <img src="@claim.Value" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px;" />
                                                         }
+                                                        else if (claim.Type == "iat")
+                                                        {
+                                                            <span>@FormatTimestamp(claim.Value)</span>
+                                                            <small class="text-muted"> (@claim.Value)</small>
+                                                        }
                                                         else
                                                         {
-                                                            <span>@claim.Value</span>
+                                                            <span class="@(isImportantClaim ? "fw-semibold" : "")">@claim.Value</span>
                                                         }
                                                     </td>
                                                 </tr>
@@ -106,9 +117,6 @@
                                 Access tokens are stored securely in server-side cookies and are not exposed to the browser.
                             </p>
                             <div class="d-flex gap-2">
-                                <a href="/auth/logout" class="btn btn-danger">
-                                    <i class="bi bi-box-arrow-right"></i> Logout
-                                </a>
                                 <a href="/" class="btn btn-secondary">
                                     <i class="bi bi-house"></i> Go Home
                                 </a>
@@ -126,15 +134,35 @@
                             <ul class="list-unstyled">
                                 <li class="mb-2">
                                     <strong>Email:</strong><br />
-                                    @(context.User.FindFirst("email")?.Value ?? "N/A")
+                                    @(GetClaimValue(context.User, "email"))
+                                </li>
+                                <li class="mb-2">
+                                    <strong>First Name:</strong><br />
+                                    @(GetClaimValue(context.User, "given_name"))
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Last Name:</strong><br />
+                                    @(GetClaimValue(context.User, "family_name"))
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Company:</strong><br />
+                                    @(GetClaimValue(context.User, "company"))
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Role:</strong><br />
+                                    <span class="badge bg-primary">@(GetClaimValue(context.User, "role"))</span>
                                 </li>
                                 <li class="mb-2">
                                     <strong>Subject (sub):</strong><br />
-                                    <small class="text-muted">@(context.User.FindFirst("sub")?.Value ?? "N/A")</small>
+                                    <small class="text-muted text-break">@(GetClaimValue(context.User, "sub"))</small>
                                 </li>
                                 <li class="mb-2">
-                                    <strong>Provider:</strong><br />
-                                    @(context.User.FindFirst("iss")?.Value ?? "N/A")
+                                    <strong>Issuer (iss):</strong><br />
+                                    <small class="text-muted text-break">@(GetClaimValue(context.User, "iss"))</small>
+                                </li>
+                                <li class="mb-2">
+                                    <strong>Issued At (iat):</strong><br />
+                                    <small class="text-muted">@FormatTimestamp(GetClaimValue(context.User, "iat"))</small>
                                 </li>
                             </ul>
                         </div>
@@ -170,6 +198,11 @@
 </div>
 
 @code {
+    private string GetClaimValue(System.Security.Claims.ClaimsPrincipal user, string claimType)
+    {
+        return user.Claims.FirstOrDefault(c => c.Type == claimType)?.Value ?? "N/A";
+    }
+
     private string GetShortClaimType(string claimType)
     {
         // Remove common prefixes to make claim types more readable
@@ -189,5 +222,19 @@
         }
 
         return claimType;
+    }
+
+    private string FormatTimestamp(string? timestamp)
+    {
+        if (string.IsNullOrEmpty(timestamp) || timestamp == "N/A")
+            return "N/A";
+
+        if (long.TryParse(timestamp, out long unixTime))
+        {
+            var dateTime = DateTimeOffset.FromUnixTimeSeconds(unixTime).LocalDateTime;
+            return dateTime.ToString("yyyy-MM-dd HH:mm:ss");
+        }
+
+        return timestamp;
     }
 }

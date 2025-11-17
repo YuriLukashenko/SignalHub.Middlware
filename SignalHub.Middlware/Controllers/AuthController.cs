@@ -7,6 +7,13 @@ namespace SignalHub.Middlware.Controllers
     [Route("[controller]")]
     public class AuthController : Controller
     {
+        private readonly ILogger<AuthController> _logger;
+
+        public AuthController(ILogger<AuthController> logger)
+        {
+            _logger = logger;
+        }
+
         [HttpGet("login")]
         public IActionResult Login(string? returnUrl = null)
         {
@@ -20,15 +27,40 @@ namespace SignalHub.Middlware.Controllers
             return Challenge(authenticationProperties, "HubexoID");
         }
 
-        [HttpGet("logout")]
-        public async Task<IActionResult> Logout()
+        [HttpGet("signout")]
+        [HttpPost("signout")]
+        public async Task<IActionResult> Logout(string? returnUrl = null)
         {
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            var userId = User.FindFirst("sub")?.Value;
+            _logger.LogInformation("User {UserId} is logging out", userId);
 
-            return SignOut(
-                new AuthenticationProperties { RedirectUri = "/" },
-                "HubexoID"
-            );
+            var redirectUrl = string.IsNullOrEmpty(returnUrl)
+                ? "/signout/complete"
+                : returnUrl;
+
+            var authenticationProperties = new AuthenticationProperties
+            {
+                RedirectUri = redirectUrl
+            };
+
+            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
+            
+            await HttpContext.SignOutAsync("HubexoID", authenticationProperties);
+
+            return new EmptyResult();
+        }
+
+        [HttpGet("signout-complete")]
+        public IActionResult SignoutComplete()
+        {
+            _logger.LogInformation("User has completed signout process");
+
+            if (!User.Identity?.IsAuthenticated ?? true)
+            {
+                return RedirectToAction("Index", "Home");
+            }
+
+            return RedirectToAction("Logout");
         }
 
         [HttpGet("access-denied")]

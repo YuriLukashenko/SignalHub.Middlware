@@ -4,8 +4,9 @@ using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using SignalHub.Middlware.Components;
-using SignalHub.Middlware.Extensions;
 using SignalHub.Middlware.Models;
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authentication;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,6 +16,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
+builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication", LogLevel.Debug);
 
 var hubexoOptions = new HubexoAuthenticationOptions
 {
@@ -24,7 +26,7 @@ var hubexoOptions = new HubexoAuthenticationOptions
     CognitoAppClientId = builder.Configuration["HubexoID:CognitoAppClientId"],
     MetadataAddress = builder.Configuration["HubexoID:MetadataAddress"],
     CallbackPath = builder.Configuration["HubexoID:CallbackPath"] ?? "/signin-oidc-hubexo",
-    SignedOutCallbackPath = builder.Configuration["HubexoID:SignedOutCallbackPath"] ?? "/signout-callback-oidc-hubexo",
+    SignedOutCallbackPath = builder.Configuration["HubexoID:SignedOutCallbackPath"] ?? "/signout/complete",
     SchemeName = builder.Configuration["HubexoID:SchemeName"] ?? "HubexoID"
 };
 
@@ -59,6 +61,12 @@ builder.Services.AddAuthentication(options =>
     options.Cookie.Name = $"SignalHub.{hubexoOptions.SchemeName}";
     options.Cookie.HttpOnly = true;
     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+    options.Cookie.SameSite = SameSiteMode.Lax;
+    
+    options.Events.OnSigningOut = async context =>
+    {
+        await Task.CompletedTask;
+    };
 })
 .AddOpenIdConnect(hubexoOptions.SchemeName, oidcOptions =>
 {
@@ -70,9 +78,12 @@ builder.Services.AddAuthentication(options =>
     oidcOptions.MetadataAddress = hubexoOptions.MetadataAddress;
     oidcOptions.CallbackPath = hubexoOptions.CallbackPath;
     oidcOptions.SignedOutCallbackPath = hubexoOptions.SignedOutCallbackPath;
+    oidcOptions.RemoteSignOutPath = "/signout-oidc-hubexo";
     oidcOptions.SaveTokens = hubexoOptions.SaveTokens;
     oidcOptions.UsePkce = true;
     oidcOptions.DisableTelemetry = true;
+
+    oidcOptions.MapInboundClaims = false;
 
     oidcOptions.Scope.Clear();
     foreach (var scope in hubexoOptions.Scopes)
@@ -99,8 +110,6 @@ builder.Services.AddAuthentication(options =>
     };
 
     oidcOptions.ClaimsIssuer = hubexoOptions.SchemeName;
-
-    // Cognito with PKCE doesn't require nonce validation
     oidcOptions.ProtocolValidator.RequireNonce = false;
 
     oidcOptions.Events = new OpenIdConnectEvents
@@ -111,22 +120,41 @@ builder.Services.AddAuthentication(options =>
             context.ProtocolMessage.SetParameter("x-client-ver", null);
             return Task.CompletedTask;
         },
-        OnRedirectToIdentityProviderForSignOut = context =>
+        OnRedirectToIdentityProviderForSignOut = async context =>
         {
-            var logoutUri = hubexoOptions.Authority.TrimEnd('/') + "/v2/logout?client_id=" + hubexoOptions.ClientId;
-            var postLogoutUri = context.Properties.RedirectUri;
+            // Візьмемо redirect із AuthenticationProperties, приведемо до абсолютного URL якщо потрібно
+            var postLogoutUri = context.Properties?.RedirectUri;
+            if (!string.IsNullOrEmpty(postLogoutUri) && postLogoutUri.StartsWith("/"))
+            {
+                var request = context.Request;
+                postLogoutUri = $"{request.Scheme}://{request.Host}{request.PathBase}{postLogoutUri}";
+            }
+
             if (!string.IsNullOrEmpty(postLogoutUri))
             {
-                if (postLogoutUri.StartsWith("/"))
+                context.ProtocolMessage.PostLogoutRedirectUri = postLogoutUri;
+
+                var idToken = await context.HttpContext.GetTokenAsync("id_token");
+                if (!string.IsNullOrEmpty(idToken))
                 {
-                    var request = context.Request;
-                    postLogoutUri = request.Scheme + "://" + request.Host + request.PathBase + postLogoutUri;
+                    context.ProtocolMessage.SetParameter("id_token_hint", idToken);
                 }
-                logoutUri += $"&returnTo={Uri.EscapeDataString(postLogoutUri)}";
+
+                context.ProtocolMessage.SetParameter("client_id", hubexoOptions.ClientId);
             }
-            context.Response.Redirect(logoutUri);
+
+            await Task.CompletedTask;
+        },
+
+        OnRemoteSignOut = async context =>
+        {
+            await Task.CompletedTask;
+        },
+        OnSignedOutCallbackRedirect = async context =>
+        {
+            context.Response.Redirect(context.Options.SignedOutRedirectUri ?? "/");
             context.HandleResponse();
-            return Task.CompletedTask;
+            await Task.CompletedTask;
         },
         OnRemoteFailure = context =>
         {
@@ -177,6 +205,7 @@ app.UseHttpsRedirection();
 app.MapStaticAssets();
 
 app.UseRouting();
+
 
 app.UseAuthentication();
 app.UseAuthorization();
