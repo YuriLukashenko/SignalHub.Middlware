@@ -1,0 +1,122 @@
+﻿.login-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.login-card {
+    background: white;
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+    max-width: 480px;
+    width: 100%;
+    overflow: hidden;
+}
+
+.login-header {
+    text-align: center;
+    padding: 40px 40px 30px;
+    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+}
+
+.login-logo {
+    width: 80px;
+    height: 80px;
+    margin-bottom: 20px;
+}
+
+.login-header h1 {
+    font-size: 28px;
+    color: #2d3748;
+    margin-bottom: 10px;
+    font-weight: 700;
+}
+
+.login-header p {
+    color: #718096;
+    font-size: 16px;
+}
+
+.login-form {
+    padding: 40px;
+}
+
+.btn-hubexo {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border: none;
+    border-radius: 10px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    transition: all 0.3s ease;
+}
+
+    .btn-hubexo:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+    }
+
+.login-divider {
+    text-align: center;
+    margin: 30px 0;
+    position: relative;
+}
+
+    .login-divider span {
+        background: white;
+        padding: 0 15px;
+        color: #a0aec0;
+        font-size: 14px;
+        position: relative;
+    }
+
+    .login-divider::before {
+        content: "";
+        position: absolute;
+        top: 50%;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: #e2e8f0;
+    }
+
+.login-footer {
+    padding: 20px 40px;
+    background: #f7fafc;
+    text-align: center;
+}
+
+    .login-footer p {
+        color: #718096;
+        font-size: 13px;
+        margin-bottom: 10px;
+    }
+
+.help-links {
+    font-size: 14px;
+}
+
+    .help-links a {
+        color: #667eea;
+        text-decoration: none;
+        transition: color 0.2s;
+    }
+
+        .help-links a:hover {
+            color: #764ba2;
+        }
+
+    .help-links span {
+        color: #cbd5e0;
+        margin: 0 10px;
+    }
