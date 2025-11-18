@@ -1,5 +1,4 @@
 @page "/userinfo"
-@using System.Security.Claims
 @attribute [Microsoft.AspNetCore.Authorization.Authorize]
 
 <PageTitle>User Information - SignalHub</PageTitle>
@@ -61,10 +60,9 @@
                                         <tbody>
                                             @foreach (var claim in context.User.Claims.OrderBy(c => c.Type))
                                             {
-                                                var isImportantClaim = false; //claim.Type == "sub" ||claim.Type == "family_name" ||claim.Type == "iss" ||claim.Type == "iat";
-                                                <tr class="@(isImportantClaim ? "table-info" : "")">
+                                                <tr>
                                                     <td>
-                                                        <code class="@(isImportantClaim ? "text-success fw-bold" : "text-primary")">
+                                                        <code class="text-primary">
                                                             @GetShortClaimType(claim.Type)
                                                         </code>
                                                     </td>
@@ -80,7 +78,7 @@
                                                         }
                                                         else
                                                         {
-                                                            <span class="@(isImportantClaim ? "fw-semibold" : "")">@claim.Value</span>
+                                                            <span>@claim.Value</span>
                                                         }
                                                     </td>
                                                 </tr>
@@ -102,24 +100,6 @@
                             }
                         </div>
                     </div>
-
-                   @*  <div class="card mt-4">
-                        <div class="card-header bg-secondary text-white">
-                            <h4 class="mb-0">
-                                <i class="bi bi-shield-check"></i> Access Tokens
-                            </h4>
-                        </div>
-                        <div class="card-body">
-                            <p class="text-muted">
-                                Access tokens are stored securely in server-side cookies and are not exposed to the browser.
-                            </p>
-                            <div class="d-flex gap-2">
-                                <a href="/" class="btn btn-secondary">
-                                    <i class="bi bi-house"></i> Go Home
-                                </a>
-                            </div>
-                        </div>
-                    </div> *@
                 </div>
 
                 <div class="col-md-4">
@@ -153,14 +133,6 @@
                                     <strong>Subject (sub):</strong><br />
                                     <small class="text-muted text-break">@(GetClaimValue(context.User, "sub"))</small>
                                 </li>
-@*                                 <li class="mb-2">
-                                    <strong>Issuer (iss):</strong><br />
-                                    <small class="text-muted text-break">@(GetClaimValue(context.User, "iss"))</small>
-                                </li>
-                                <li class="mb-2">
-                                    <strong>Issued At (iat):</strong><br />
-                                    <small class="text-muted">@FormatTimestamp(GetClaimValue(context.User, "iat"))</small>
-                                </li> *@
                             </ul>
                         </div>
                     </div>
@@ -176,45 +148,3 @@
         </NotAuthorized>
     </AuthorizeView>
 </div>
-
-@code {
-    private string GetClaimValue(System.Security.Claims.ClaimsPrincipal user, string claimType)
-    {
-        return user.Claims.FirstOrDefault(c => c.Type == claimType)?.Value ?? "N/A";
-    }
-
-    private string GetShortClaimType(string claimType)
-    {
-        // Remove common prefixes to make claim types more readable
-        var prefixes = new[]
-        {
-            "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/",
-            "http://schemas.microsoft.com/ws/2008/06/identity/claims/",
-            "http://schemas.microsoft.com/identity/claims/"
-        };
-
-        foreach (var prefix in prefixes)
-        {
-            if (claimType.StartsWith(prefix))
-            {
-                return claimType.Substring(prefix.Length);
-            }
-        }
-
-        return claimType;
-    }
-
-    private string FormatTimestamp(string? timestamp)
-    {
-        if (string.IsNullOrEmpty(timestamp) || timestamp == "N/A")
-            return "N/A";
-
-        if (long.TryParse(timestamp, out long unixTime))
-        {
-            var dateTime = DateTimeOffset.FromUnixTimeSeconds(unixTime).LocalDateTime;
-            return dateTime.ToString("yyyy-MM-dd HH:mm:ss");
-        }
-
-        return timestamp;
-    }
-}
