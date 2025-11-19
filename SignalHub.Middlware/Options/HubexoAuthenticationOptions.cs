@@ -21,22 +21,5 @@ namespace SignalHub.Middlware.Options
         public bool GetClaimsFromUserInfoEndpoint { get; set; }
         public string NameClaimType { get; set; } = "name";
         public string ResponseMode { get; set; } = "query";
-
-        public void Validate()
-        {
-            if (string.IsNullOrEmpty(Authority))
-                throw new ArgumentException("Authority is required", nameof(Authority));
-
-            if (string.IsNullOrEmpty(ClientId))
-                throw new ArgumentException("ClientId is required", nameof(ClientId));
-
-            if (string.IsNullOrEmpty(ClientSecret))
-                throw new ArgumentException("ClientSecret is required", nameof(ClientSecret));
-
-            if (string.IsNullOrEmpty(MetadataAddress))
-            {
-                MetadataAddress = $"{Authority.TrimEnd('/')}/.well-known/openid-configuration";
-            }
-        }
     }
 }
