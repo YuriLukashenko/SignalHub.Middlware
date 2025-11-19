@@ -1,6 +1,6 @@
 using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
+using SignalHub.Middlware.Interfaces;
 
 namespace SignalHub.Middlware.Controllers
 {
@@ -8,10 +8,12 @@ namespace SignalHub.Middlware.Controllers
     public class AuthController : Controller
     {
         private readonly ILogger<AuthController> _logger;
+        private readonly IHubexoAuthenticationService _hubexoAuthenticationService;
 
-        public AuthController(ILogger<AuthController> logger)
+        public AuthController(ILogger<AuthController> logger, IHubexoAuthenticationService hubexoAuthenticationService)
         {
             _logger = logger;
+            _hubexoAuthenticationService = hubexoAuthenticationService;
         }
 
         [HttpGet("login")]
@@ -28,32 +30,14 @@ namespace SignalHub.Middlware.Controllers
         }
 
         [HttpGet("signout")]
-        [HttpPost("signout")]
-        public async Task<IActionResult> Logout(string? returnUrl = null)
+        public async Task<IActionResult> SignOut(string? returnUrl = null)
         {
-            var userId = User.FindFirst("sub")?.Value;
-            _logger.LogInformation("User {UserId} is logging out", userId);
-
-            var redirectUrl = string.IsNullOrEmpty(returnUrl)
-                ? "https://localhost:44347/signout/complete"
-                : returnUrl;
-
-            var authenticationProperties = new AuthenticationProperties
+            if (await _hubexoAuthenticationService.SignOutAsync(HttpContext, returnUrl))
             {
-                RedirectUri = redirectUrl
-            };
+                return new EmptyResult();
+            }
 
-            await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
-            
-            await HttpContext.SignOutAsync("HubexoID", authenticationProperties);
-
-            return new EmptyResult();
-        }
-
-        [HttpGet("access-denied")]
-        public IActionResult AccessDenied()
-        {
-            return View();
+            return StatusCode(500, "Error during sign out process");
         }
     }
 }

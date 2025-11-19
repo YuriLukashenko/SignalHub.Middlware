@@ -1,7 +1,8 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using SignalHub.Middlware.Services;
 using SignalHub.Middlware.Extensions;
+using SignalHub.Middlware.Interfaces;
+using SignalHub.Middlware.Services;
 
 namespace SignalHub.Middlware.Controllers;
 
@@ -11,11 +12,11 @@ namespace SignalHub.Middlware.Controllers;
 public class ApiController : ControllerBase
 {
     private readonly ILogger<ApiController> _logger;
-    private readonly IAuthenticationService _authService;
+    private readonly IHubexoAuthenticationService _authService;
 
     public ApiController(
         ILogger<ApiController> logger,
-        IAuthenticationService authService)
+        IHubexoAuthenticationService authService)
     {
         _logger = logger;
         _authService = authService;
@@ -62,50 +63,6 @@ public class ApiController : ControllerBase
         });
     }
 
-    [HttpGet("data")]
-    public IActionResult GetData()
-    {
-        var userId = HttpContext.GetUserId();
-        var email = HttpContext.GetUserEmail();
-
-        _logger.LogInformation("API Data request from user: {UserId}", userId);
-
-        return Ok(new
-        {
-            Message = "This is protected data from the API",
-            UserId = userId,
-            Email = email,
-            Timestamp = DateTime.UtcNow,
-            Data = new[]
-            {
-                new { Id = 1, Name = "Item 1", Value = 100 },
-                new { Id = 2, Name = "Item 2", Value = 200 },
-                new { Id = 3, Name = "Item 3", Value = 300 }
-            }
-        });
-    }
-
-    [HttpPost("data")]
-    public IActionResult CreateData([FromBody] CreateDataRequest request)
-    {
-        var userId = HttpContext.GetUserId();
-        _logger.LogInformation("API Create Data request from user: {UserId}", userId);
-
-        if (string.IsNullOrWhiteSpace(request.Name))
-        {
-            return BadRequest(new { Error = "Name is required" });
-        }
-
-        return CreatedAtAction(nameof(GetData), new
-        {
-            Id = Random.Shared.Next(1000, 9999),
-            Name = request.Name,
-            Value = request.Value,
-            CreatedBy = userId,
-            CreatedAt = DateTime.UtcNow
-        });
-    }
-
     [HttpGet("health")]
     [AllowAnonymous]
     public IActionResult Health()
@@ -134,7 +91,7 @@ public class ApiController : ControllerBase
         });
     }
 
-    [HttpPost("signout")]
+    [HttpPost("logout")]
     public async Task<IActionResult> Logout([FromBody] LogoutRequest? request = null)
     {
         var userId = HttpContext.GetUserId();
@@ -224,12 +181,6 @@ public class ApiController : ControllerBase
             Timestamp = DateTime.UtcNow
         });
     }
-}
-
-public class CreateDataRequest
-{
-    public string Name { get; set; } = string.Empty;
-    public int Value { get; set; }
 }
 
 public class LogoutRequest

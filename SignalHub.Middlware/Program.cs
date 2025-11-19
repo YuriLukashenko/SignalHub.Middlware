@@ -9,8 +9,7 @@ builder.Services.AddRazorComponents()
 builder.Services.AddControllers();
 builder.Services.AddAuthorization();
 builder.Services.AddCascadingAuthenticationState();
-builder.Logging.AddFilter("Microsoft.AspNetCore.Authentication", LogLevel.Debug);
-
+builder.Services.AddHubexoServices();
 builder.Services.AddHubexoAuthentication(builder.Configuration);
 
 var app = builder.Build();
@@ -23,15 +22,10 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.MapStaticAssets();
-
 app.UseRouting();
-
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseAntiforgery();
-
 app.MapControllers();
 
 app.MapRazorComponents<App>()

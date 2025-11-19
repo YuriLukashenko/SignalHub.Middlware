@@ -2,14 +2,22 @@
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
 using Microsoft.IdentityModel.Tokens;
 using SignalHub.Middlware.Authentication;
+using SignalHub.Middlware.Interfaces;
 using SignalHub.Middlware.Options;
+using SignalHub.Middlware.Services;
 
 namespace SignalHub.Middlware.Extensions
 {
     public static class AuthenticationExtensions
     {
-        public static IServiceCollection AddHubexoAuthentication(this IServiceCollection services,
-            IConfiguration config)
+        public static IServiceCollection AddHubexoServices(this IServiceCollection services)
+        {
+            services.AddHttpContextAccessor();
+            services.AddScoped<IHubexoAuthenticationService, HubexoAuthenticationService>();
+            return services;
+        }
+
+        public static IServiceCollection AddHubexoAuthentication(this IServiceCollection services, IConfiguration config)
         {
             var oidc = config.GetSection("HubexoID").Get<HubexoAuthenticationOptions>()!;
             var api = config.GetSection("HubexoAPI").Get<HubexoApiAuthenticationOptions>()!;

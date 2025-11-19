@@ -1,5 +1,4 @@
-﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Mvc;
 
 namespace SignalHub.Middlware.Controllers
 {
@@ -18,12 +17,6 @@ namespace SignalHub.Middlware.Controllers
         public IActionResult SignoutComplete()
         {
             _logger.LogInformation("User has completed signout process");
-
-            if (!User.Identity?.IsAuthenticated ?? true)
-            {
-                //return RedirectToAction("Index", "Home");
-            }
-
             return Redirect("/signedout");
         }
     }

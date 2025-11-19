@@ -1,33 +1,29 @@
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.Extensions.Options;
+using SignalHub.Middlware.Interfaces;
+using SignalHub.Middlware.Options;
 using System.Security.Claims;
 
 namespace SignalHub.Middlware.Services
 {
-    public interface IAuthenticationService
-    {
-        Task<bool> SignOutAsync(HttpContext context, string? returnUrl = null);
-        Task<bool> IsAuthenticatedAsync(HttpContext context);
-        Task<ClaimsPrincipal?> GetCurrentUserAsync(HttpContext context);
-        string GetLogoutUrl(string? returnUrl = null);
-        Task RevokeTokensAsync(HttpContext context);
-    }
-
-    public class AuthenticationService : IAuthenticationService
+    public class HubexoAuthenticationService : IHubexoAuthenticationService
     {
         private readonly IConfiguration _configuration;
-        private readonly ILogger<AuthenticationService> _logger;
+        private readonly ILogger<HubexoAuthenticationService> _logger;
         private readonly IHttpContextAccessor _httpContextAccessor;
+        private readonly IOptions<HubexoAuthenticationOptions> _options;
 
-        public AuthenticationService(
-            IConfiguration configuration,
-            ILogger<AuthenticationService> logger,
-            IHttpContextAccessor httpContextAccessor)
+        public HubexoAuthenticationService(IConfiguration configuration, 
+            ILogger<HubexoAuthenticationService> logger,
+            IHttpContextAccessor httpContextAccessor,
+            IOptions<HubexoAuthenticationOptions> options)
         {
             _configuration = configuration;
             _logger = logger;
             _httpContextAccessor = httpContextAccessor;
+            _options = options;
         }
 
         public async Task<bool> SignOutAsync(HttpContext context, string? returnUrl = null)
@@ -36,13 +32,17 @@ namespace SignalHub.Middlware.Services
             {
                 var userId = context.User.FindFirst("sub")?.Value;
                 var userEmail = context.User.FindFirst("email")?.Value;
-                
-                _logger.LogInformation("Starting sign out process for user: {UserId} ({Email})", 
-                    userId, userEmail);
+
+                _logger.LogInformation($"Starting sign out process for user: {userId} ({userEmail})");
+
+                var baseUrl = $"{context.Request.Scheme}://{context.Request.Host}";
+                var redirectUrl = string.IsNullOrEmpty(returnUrl)
+                    ? $"{baseUrl}{_options.Value.SignedOutRedirectUri}"
+                    : returnUrl;
 
                 var authProperties = new AuthenticationProperties
                 {
-                    RedirectUri = returnUrl ?? "/signout"
+                    RedirectUri = redirectUrl
                 };
 
                 await RevokeTokensAsync(context);
@@ -113,16 +113,6 @@ namespace SignalHub.Middlware.Services
             {
                 _logger.LogWarning(ex, "Error while attempting to revoke tokens");
             }
-        }
-    }
-
-    public static class AuthenticationServiceExtensions
-    {
-        public static IServiceCollection AddSignalHubAuthentication(this IServiceCollection services)
-        {
-            services.AddHttpContextAccessor();
-            services.AddScoped<IAuthenticationService, AuthenticationService>();
-            return services;
         }
     }
 }
