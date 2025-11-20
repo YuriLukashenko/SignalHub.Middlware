@@ -55,7 +55,7 @@ namespace SignalHub.Middlware.Extensions
                 o.RemoteSignOutPath = oidc.RemoteSignOutPath;
                 o.SaveTokens = oidc.SaveTokens;
                 o.UsePkce = oidc.RequirePkce;
-
+                o.SkipUnrecognizedRequests = true;
                 o.DisableTelemetry = true;
                 o.MapInboundClaims = false;
 

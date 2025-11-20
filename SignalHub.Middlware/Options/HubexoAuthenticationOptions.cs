@@ -9,7 +9,7 @@ namespace SignalHub.Middlware.Options
         public string? MetadataAddress { get; set; }
         public string ResponseType { get; set; } = "code";
         public IEnumerable<string> Scopes { get; set; } = new List<string> { "openid", "profile", "email" };
-        public string CallbackPath { get; set; } = "/signin-oidc-hubexo";
+        public string CallbackPath { get; set; } = "/auth/login";
         public string RemoteSignOutPath { get; set; } = "/signout-oidc-hubexo";
         public string SignedOutCallbackPath { get; set; } = "/signout/callback";
         public string SignedOutRedirectUri { get; set; } = "/signout/complete";
